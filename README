@@ -1,0 +1,10 @@
+This is a ruby program that will generate a RPM SPEC File based on
+THe POM associateed with a package inside a Maven repository.
+
+NOT THE POM YOU USE TO BUILD YOUR PROJECT
+
+It wa sinspired by the gem2rpm script used for Ruby Gems, but shares no code with that project.  
+
+The  format  of theSPEC Files attempts to meet the Standards for Java Packaging set by the Fedora project.
+
+http://fedoraproject.org/wiki/Packaging/Java

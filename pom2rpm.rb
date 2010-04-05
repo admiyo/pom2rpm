@@ -1,0 +1,109 @@
+#!/usr/bin/ruby
+#
+require 'rubygems'
+require 'xmlsimple'
+require 'ftools'
+
+
+
+def write_spec(spec, pomname)
+  pom = XmlSimple.xml_in("#{pomname}", { 'KeyAttr' => 'name' })
+
+  spec.puts "Name:      #{pom['artifactId']}"
+  spec.puts "Version:   #{pom['version']}"
+  spec.puts "Release:        1\%\{?dist}"
+  spec.puts"Summary:       #{pom['description']} "
+  spec.puts ""
+  spec.puts "Group:         Development/Java"
+  if pom['licenses'] == nil
+    spec.puts "License:        GPL"
+  else
+    spec.puts "License:        #{pom['licenses'][0]['license'][0]['name']}"
+  end
+  spec.puts "URL:            #{pom['url']}"
+  spec.puts "Source0:        #{pom['artifactId']}-#{pom['version']}-sources.jar"
+  spec.puts "BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)"
+  spec.puts ""
+  spec.puts "BuildRequires: java-devel  "
+  spec.puts "BuildRequires:  jpackage-utils"
+  spec.puts ""
+  spec.puts "Requires:  java >= specific_version"
+  spec.puts "Requires:  jpackage-utils"
+
+   unless pom['dependencies'] == nil
+     pom['dependencies'][0]['dependency'].each { 
+      |dep|  spec.puts "Requires: #{dep['artifactId']} = #{dep['version']}"
+    }
+   end
+  spec.puts ""
+  spec.puts "%description"
+  spec.puts "%package javadoc"
+  spec.puts "Summary:        Javadocs for %{name}"
+  spec.puts "Group:          Development/Documentation"
+  spec.puts "Requires:       %{name}-%{version}-%{release}"
+  spec.puts "Requires:       jpackage-utils"
+  spec.puts ""
+  spec.puts "%description javadoc"
+  spec.puts "This package contains the API documentation for %{name}."
+  spec.puts ""
+  spec.puts "%prep"
+  spec.puts "%setup -cT"
+  spec.puts "mkdir src javadoc classes"
+  spec.puts "pushd src"
+  spec.puts "jar -xf %{SOURCE0}"
+  spec.puts "popd"
+  spec.puts ""
+  spec.puts "%build"
+  spec.puts "javac -d classes -cp src/  `find . -name \*.java` "
+  spec.puts "javadoc -d javadocs/ -classpath src  $(for JAVA in `find src/ -name \*.java` ; do  dirname $JAVA ; done | sort -u  | sed -e 's!src.!!'  -e 's!/!.!g'  )"
+  spec.puts "find classes -name \*.class | sed -e  's!classes/!!g' -e 's!^! -C classes !'  | xargs jar cfm #{pom['artifactId']}-#{pom['version']}.jar ./src/META-INF/MANIFEST.MF"
+  spec.puts ""
+  spec.puts ""
+  spec.puts "%install"
+  spec.puts "#rm -rf $RPM_BUILD_ROOT"
+  spec.puts "mkdir -p $RPM_BUILD_ROOT"
+  spec.puts "install -m 755 -d $RPM_BUILD_ROOT%{_javadir}"
+  spec.puts "install -m 755    #{pom['artifactId']}-#{pom['version']}.jar  $RPM_BUILD_ROOT%{_javadir} "
+  spec.puts "install -m 755 -d $RPM_BUILD_ROOT%{_javadocdir}/%{name}"
+  spec.puts "cp -rp javadocs  $RPM_BUILD_ROOT%{_javadocdir}/%{name}"
+
+
+
+  spec.puts "%clean"
+  spec.puts "rm -rf $RPM_BUILD_ROOT"
+  spec.puts ""
+  spec.puts ""
+  spec.puts "%files"
+  spec.puts "%defattr(-,root,root,-)"
+  spec.puts "%{_javadir}/#{pom['artifactId']}-#{pom['version']}.jar"
+  spec.puts "%doc"
+  spec.puts "%files javadoc"
+  spec.puts"%defattr(-,root,root,-)"
+  spec.puts"%{_javadocdir}/%{name}"
+  spec.puts ""
+  spec.puts ""
+  spec.puts "%changelog"
+  spec.puts "* Sun Apr 03 2010 Adam Young ayoung@redhat.com"
+  spec.puts "- Specfile Created by pom2rpm by Adam Young ayoung@redhat.com "
+  spec.puts ""
+
+end
+
+#main program below
+
+#ARGV.each { |arg| write_spec("#{arg}")  }
+
+specRegex = /([a-zA-Z0-9\-]*)-[0-9]*.*\.pom/
+specdir = "~/rpmbuild/SPECS"
+
+ARGV.each { |arg| 
+  pomname=File.basename(arg)
+  specRegex =~ pomname
+  specname = "#{$1}.spec"
+  puts "#{arg} will gen  #{specname}"   
+  spec = File.new(specname, 'w')
+  write_spec(spec, "#{arg}") 
+}
+
+
+
