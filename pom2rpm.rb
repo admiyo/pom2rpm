@@ -26,14 +26,16 @@ def write_spec(spec, pomname)
   spec.puts ""
   spec.puts "BuildRequires: java-devel  "
   spec.puts "BuildRequires:  jpackage-utils"
-  spec.puts ""
+  spec.puts "BuildArch: noarch"
   spec.puts "Requires:  java >= specific_version"
   spec.puts "Requires:  jpackage-utils"
 
    unless pom['dependencies'] == nil
-     pom['dependencies'][0]['dependency'].each { 
-      |dep|  spec.puts "Requires: #{dep['artifactId']} = #{dep['version']}"
-    }
+     unless pom['dependencies'][0]['dependency'] == nil
+       pom['dependencies'][0]['dependency'].each { 
+        |dep|  spec.puts "Requires: #{dep['artifactId']} = #{dep['version']}"
+      }
+     end
    end
   spec.puts ""
   spec.puts "%description"
@@ -65,16 +67,24 @@ def write_spec(spec, pomname)
   spec.puts "install -m 755 -d $RPM_BUILD_ROOT%{_javadir}"
   spec.puts "install -m 755    #{pom['artifactId']}-#{pom['version']}.jar  $RPM_BUILD_ROOT%{_javadir} "
   spec.puts "install -m 755 -d $RPM_BUILD_ROOT%{_javadocdir}/%{name}"
-  spec.puts "cp -rp javadocs  $RPM_BUILD_ROOT%{_javadocdir}/%{name}"
-
-
-
+  spec.puts "cp -rp javadocs/*  $RPM_BUILD_ROOT%{_javadocdir}/%{name}"
+  spec.puts ""
+  spec.puts "%add_to_maven_depmap org.apache.maven %{name} %{version} JPP %{name}"
+  spec.puts ""
   spec.puts "%clean"
   spec.puts "rm -rf $RPM_BUILD_ROOT"
   spec.puts ""
   spec.puts ""
+  spec.puts "%post"
+  spec.puts "%update_maven_depmap"
+  spec.puts ""
+  spec.puts "%postun"
+  spec.puts "%update_maven_depmap"
+  spec.puts ""
+  spec.puts ""
   spec.puts "%files"
   spec.puts "%defattr(-,root,root,-)"
+  spec.puts "/etc/maven/fragments/%{name}"
   spec.puts "%{_javadir}/#{pom['artifactId']}-#{pom['version']}.jar"
   spec.puts "%doc"
   spec.puts "%files javadoc"
@@ -91,10 +101,7 @@ end
 
 #main program below
 
-#ARGV.each { |arg| write_spec("#{arg}")  }
-
 specRegex = /([a-zA-Z0-9\-]*)-[0-9]*.*\.pom/
-specdir = "~/rpmbuild/SPECS"
 
 ARGV.each { |arg| 
   pomname=File.basename(arg)
