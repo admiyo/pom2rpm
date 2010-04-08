@@ -11,7 +11,7 @@ def write_spec(spec, pomname)
 
   spec.puts "Name:      #{pom['artifactId']}"
   spec.puts "Version:   #{pom['version']}"
-  spec.puts "Release:        1\%\{?dist}"
+  spec.puts "Release:        2\%\{?dist}"
   spec.puts"Summary:       #{pom['description']} "
   spec.puts ""
   spec.puts "Group:         Development/Java"
@@ -21,19 +21,25 @@ def write_spec(spec, pomname)
     spec.puts "License:        #{pom['licenses'][0]['license'][0]['name']}"
   end
   spec.puts "URL:            #{pom['url']}"
-  spec.puts "Source0:        #{pom['artifactId']}-#{pom['version']}-sources.jar"
+  spec.puts "Source0:        %{name}-%{version}-sources.jar"
   spec.puts "BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)"
   spec.puts ""
   spec.puts "BuildRequires: java-devel  "
   spec.puts "BuildRequires:  jpackage-utils"
   spec.puts "BuildArch: noarch"
-  spec.puts "Requires:  java >= specific_version"
+  spec.puts "Requires:  java >= 1.5"
   spec.puts "Requires:  jpackage-utils"
-
+  classpath="src/"
    unless pom['dependencies'] == nil
      unless pom['dependencies'][0]['dependency'] == nil
        pom['dependencies'][0]['dependency'].each { 
-        |dep|  spec.puts "Requires: #{dep['artifactId']} = #{dep['version']}"
+        |dep|  
+        if dep['version'] == nil
+          spec.puts "Requires: #{dep['artifactId']}"        
+        else
+          spec.puts "Requires: #{dep['artifactId']} = #{dep['version']}"
+        end
+        classpath += ":%{_javadir}/#{dep['artifactId']}.jar"
       }
      end
    end
@@ -42,7 +48,7 @@ def write_spec(spec, pomname)
   spec.puts "%package javadoc"
   spec.puts "Summary:        Javadocs for %{name}"
   spec.puts "Group:          Development/Documentation"
-  spec.puts "Requires:       %{name}-%{version}-%{release}"
+  spec.puts "Requires:       %{name} = %{version}-%{release}"
   spec.puts "Requires:       jpackage-utils"
   spec.puts ""
   spec.puts "%description javadoc"
@@ -56,18 +62,19 @@ def write_spec(spec, pomname)
   spec.puts "popd"
   spec.puts ""
   spec.puts "%build"
-  spec.puts "javac -d classes -cp src/  `find . -name \*.java` "
-  spec.puts "javadoc -d javadocs/ -classpath src  $(for JAVA in `find src/ -name \*.java` ; do  dirname $JAVA ; done | sort -u  | sed -e 's!src.!!'  -e 's!/!.!g'  )"
-  spec.puts "find classes -name \*.class | sed -e  's!classes/!!g' -e 's!^! -C classes !'  | xargs jar cfm #{pom['artifactId']}-#{pom['version']}.jar ./src/META-INF/MANIFEST.MF"
+  spec.puts "javac -d classes -cp #{classpath}  `find . -name \*.java` "
+  spec.puts "javadoc -d javadoc -classpath src  $(for JAVA in `find src/ -name \*.java` ; do  dirname $JAVA ; done | sort -u  | sed -e 's!src.!!'  -e 's!/!.!g'  )"
+  spec.puts "find classes -name \*.class | sed -e  's!classes/!!g' -e 's!^! -C classes !'  | xargs jar cfm %{name}-%{version}.jar ./src/META-INF/MANIFEST.MF"
   spec.puts ""
   spec.puts ""
   spec.puts "%install"
   spec.puts "#rm -rf $RPM_BUILD_ROOT"
   spec.puts "mkdir -p $RPM_BUILD_ROOT"
   spec.puts "install -m 755 -d $RPM_BUILD_ROOT%{_javadir}"
-  spec.puts "install -m 755    #{pom['artifactId']}-#{pom['version']}.jar  $RPM_BUILD_ROOT%{_javadir} "
+  spec.puts "install -m 755 %{name}-%{version}.jar $RPM_BUILD_ROOT%{_javadir}"
+  spec.puts "ln -s %{_javadir}/%{name}-%{version}.jar $RPM_BUILD_ROOT%{_javadir}/%{name}.jar"
   spec.puts "install -m 755 -d $RPM_BUILD_ROOT%{_javadocdir}/%{name}"
-  spec.puts "cp -rp javadocs/*  $RPM_BUILD_ROOT%{_javadocdir}/%{name}"
+  spec.puts "cp -rp javadoc/*  $RPM_BUILD_ROOT%{_javadocdir}/%{name}"
   spec.puts ""
   spec.puts "%add_to_maven_depmap org.apache.maven %{name} %{version} JPP %{name}"
   spec.puts ""
@@ -85,7 +92,8 @@ def write_spec(spec, pomname)
   spec.puts "%files"
   spec.puts "%defattr(-,root,root,-)"
   spec.puts "/etc/maven/fragments/%{name}"
-  spec.puts "%{_javadir}/#{pom['artifactId']}-#{pom['version']}.jar"
+  spec.puts "%{_javadir}/%{name}-%{version}.jar"
+  spec.puts "%{_javadir}/%{name}.jar"
   spec.puts "%doc"
   spec.puts "%files javadoc"
   spec.puts"%defattr(-,root,root,-)"
