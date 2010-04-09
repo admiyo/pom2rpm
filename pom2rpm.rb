@@ -10,9 +10,13 @@ def write_spec(spec, pomname)
   pom = XmlSimple.xml_in("#{pomname}", { 'KeyAttr' => 'name' })
 
   spec.puts "Name:      #{pom['artifactId']}"
-  spec.puts "Version:   #{pom['version']}"
+  if   pom['version'] != nil &&  pom['version'] != "" 
+      spec.puts "Version:   #{pom['version']}" 
+  elsif  pom['parent'] != nil && pom['parent'][0]['version'] != nil 
+    spec.puts "Version:   #{pom['parent'][0]['version']}"
+  end
   spec.puts "Release:        2\%\{?dist}"
-  spec.puts"Summary:       #{pom['description']} "
+  spec.puts"Summary:       #{pom['name']} "
   spec.puts ""
   spec.puts "Group:         Development/Java"
   if pom['licenses'] == nil
@@ -35,11 +39,23 @@ def write_spec(spec, pomname)
        pom['dependencies'][0]['dependency'].each { 
         |dep|  
         if dep['version'] == nil
+          spec.puts "BuildRequires: #{dep['artifactId']}"        
+        else
+          spec.puts "BuildRequires: #{dep['artifactId']} = #{dep['version']}"
+        end
+        classpath += ":%{_javadir}/#{dep['artifactId']}.jar"
+      }
+     end
+   end
+   unless pom['dependencies'] == nil
+     unless pom['dependencies'][0]['dependency'] == nil
+       pom['dependencies'][0]['dependency'].each { 
+        |dep|  
+        if dep['version'] == nil
           spec.puts "Requires: #{dep['artifactId']}"        
         else
           spec.puts "Requires: #{dep['artifactId']} = #{dep['version']}"
         end
-        classpath += ":%{_javadir}/#{dep['artifactId']}.jar"
       }
      end
    end
@@ -116,6 +132,12 @@ ARGV.each { |arg|
   specRegex =~ pomname
   specname = "#{$1}.spec"
   puts "#{arg} will gen  #{specname}"   
+
+  if File.file?(specname)
+    puts "Renaming #{specname} to #{specname}.bak"
+    File.rename(specname, "#{specname}.bak");
+  end
+
   spec = File.new(specname, 'w')
   write_spec(spec, "#{arg}") 
 }
