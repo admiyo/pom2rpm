@@ -10,6 +10,8 @@ SHORTCIRCUIT=0
 #set to 0 in order to remove the ... during search
 VERBOSE=1
 
+CONVERT=0
+
 EXTENSIONS='jar  war ear sar zip'
 
 USAGE(){
@@ -27,12 +29,21 @@ USAGE(){
     echo "-j : jars only     By Default, the search cylces through $EXTENSIONS"
 }
 
+class2path(){
+echo $1 | sed 's!\.!\/!g'
+}
+
+
 EXTENSIONS='jar  war ear sar zip'
 
 while (( "$#" )) 
 do
 
 case "$1" in
+    "-c")
+	CONVERT=1
+	shift
+	;;
     "-j")
 	EXTENSIONS="jar"
 	shift
@@ -52,6 +63,10 @@ done
 
 SEARCHROOT=$1
 SUBSTRING=$2
+if [ $CONVERT -gt 0 ]
+then
+    SUBSTRING=`class2path $SUBSTRING`
+fi
 
 [  -z $SEARCHROOT ] && USAGE && exit 1
 [  -z $SUBSTRING ] && USAGE && exit 1
@@ -67,9 +82,9 @@ do
 	[ $VERBOSE -gt 0  ] && echo -n .
  	if [ `file $ARCHIVE | grep -c "Zip archive data"` -gt 0 ]
 	then 
-		[ `jar -tf $ARCHIVE | grep -c $SUBSTRING` -gt 0  ] && \
-		    /bin/echo -e \\r $SEARCHROOT/$ARCHIVE  && \
-		    [ $SHORTCIRCUIT -gt 0 ] && exit 0
+	    [ `jar -tf $ARCHIVE | grep -c $SUBSTRING` -gt 0  ] && \
+		/bin/echo -e \\r $SEARCHROOT/$ARCHIVE  && \
+		[ $SHORTCIRCUIT -gt 0 ] && exit 0
 	fi
     done
 done
