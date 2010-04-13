@@ -31,34 +31,38 @@ def write_spec(spec, pomname)
   spec.puts "BuildRequires: java-devel  "
   spec.puts "BuildRequires:  jpackage-utils"
   spec.puts "BuildArch: noarch"
-  spec.puts "Requires:  java >= 1.5"
-  spec.puts "Requires:  jpackage-utils"
   classpath="src/"
-   unless pom['dependencies'] == nil
-     unless pom['dependencies'][0]['dependency'] == nil
-       pom['dependencies'][0]['dependency'].each { 
+  #TODO: pull this next section out into a function for both Requires and 
+  # BuildRequires.  Translate servlet-api into servletapi5, 
+  # remove webserver
+  # convert ${project.version} to %{version}
+  unless pom['dependencies'] == nil
+    unless pom['dependencies'][0]['dependency'] == nil
+      pom['dependencies'][0]['dependency'].each { 
         |dep|  
         if dep['version'] == nil
           spec.puts "BuildRequires: #{dep['artifactId']}"        
         else
-          spec.puts "BuildRequires: #{dep['artifactId']} = #{dep['version']}"
+          spec.puts "BuildRequires: #{dep['artifactId']} >= #{dep['version']}"
         end
         classpath += ":%{_javadir}/#{dep['artifactId']}.jar"
       }
-     end
-   end
-   unless pom['dependencies'] == nil
-     unless pom['dependencies'][0]['dependency'] == nil
-       pom['dependencies'][0]['dependency'].each { 
+    end
+  end
+  spec.puts "Requires:  java >= 1.5"
+  spec.puts "Requires:  jpackage-utils"
+  unless pom['dependencies'] == nil
+    unless pom['dependencies'][0]['dependency'] == nil
+      pom['dependencies'][0]['dependency'].each { 
         |dep|  
         if dep['version'] == nil
           spec.puts "Requires: #{dep['artifactId']}"        
         else
-          spec.puts "Requires: #{dep['artifactId']} = #{dep['version']}"
+          spec.puts "Requires: #{dep['artifactId']} >= #{dep['version']}"
         end
       }
-     end
-   end
+    end
+  end
   spec.puts ""
   spec.puts "%description"
   spec.puts "%package javadoc"
@@ -78,8 +82,9 @@ def write_spec(spec, pomname)
   spec.puts "popd"
   spec.puts ""
   spec.puts "%build"
-  spec.puts "javac -d classes -cp #{classpath}  `find . -name \*.java` "
-  spec.puts "javadoc -d javadoc -classpath src  $(for JAVA in `find src/ -name \*.java` ; do  dirname $JAVA ; done | sort -u  | sed -e 's!src.!!'  -e 's!/!.!g'  )"
+  spec.puts "classpath=#{classpath}"
+  spec.puts "javac -d classes -cp $classpath  `find . -name \*.java` "
+  spec.puts "javadoc -d javadoc -classpath $classpath  $(for JAVA in `find src/ -name \*.java` ; do  dirname $JAVA ; done | sort -u  | sed -e 's!src.!!'  -e 's!/!.!g'  )"
   spec.puts "find classes -name \*.class | sed -e  's!classes/!!g' -e 's!^! -C classes !'  | xargs jar cfm %{name}-%{version}.jar ./src/META-INF/MANIFEST.MF"
   spec.puts ""
   spec.puts ""
