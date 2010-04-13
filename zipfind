@@ -1,0 +1,77 @@
+#!/bin/sh 
+
+#searches for a substring of a file name in all of the jar
+#and jar type archives under a given directory
+
+
+#set to 0 to continue after the first match
+SHORTCIRCUIT=0
+
+#set to 0 in order to remove the ... during search
+VERBOSE=1
+
+EXTENSIONS='jar  war ear sar zip'
+
+USAGE(){
+    APPNAME=`basename $0`
+
+    echo "$APPNAME: searches for a substring of a file name in all of the jar "
+    echo " and jar type archives under a given directory "
+    echo " USAGE: "
+    echo "      $APPNAME [option] <searchroot> <Substring> "
+    echo "options override default behavior.  They are are: "
+    echo "-q : quiet.        By Default, the search prints out a series of dots"
+    echo "                   to show it hasn't stalled"
+    echo "-s : shortcircuit  By Default, the search continues after "
+    echo "                   the first match"
+    echo "-j : jars only     By Default, the search cylces through $EXTENSIONS"
+}
+
+EXTENSIONS='jar  war ear sar zip'
+
+while (( "$#" )) 
+do
+
+case "$1" in
+    "-j")
+	EXTENSIONS="jar"
+	shift
+	;;
+    "-q") 
+	VERBOSE=0
+	shift
+	;;
+    "-s") SHORTCIRCUIT=1
+	shift
+	;;
+    *) 
+	break
+	;;
+esac
+done
+
+SEARCHROOT=$1
+SUBSTRING=$2
+
+[  -z $SEARCHROOT ] && USAGE && exit 1
+[  -z $SUBSTRING ] && USAGE && exit 1
+
+cd $SEARCHROOT 
+
+for EXT in $EXTENSIONS
+do
+    [ $VERBOSE -gt 0  ] && \
+	echo SEARCHING for $SUBSTRING in ALL $EXT Files in $SEARCHROOT
+    for ARCHIVE in `find  . -name \*.$EXT `
+    do
+	[ $VERBOSE -gt 0  ] && echo -n .
+ 	if [ `file $ARCHIVE | grep -c "Zip archive data"` -gt 0 ]
+	then 
+		[ `jar -tf $ARCHIVE | grep -c $SUBSTRING` -gt 0  ] && \
+		    /bin/echo -e \\r $SEARCHROOT/$ARCHIVE  && \
+		    [ $SHORTCIRCUIT -gt 0 ] && exit 0
+	fi
+    done
+done
+
+echo 
