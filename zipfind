@@ -1,8 +1,7 @@
 #!/bin/sh 
 
-#searches for a substring of a file name in all of the jar
-#and jar type archives under a given directory
-
+#searches for a substring of a file name in all of the zip formatted files 
+#under a given directory: jar, war, ear, sar and zip
 
 #set to 0 to continue after the first match
 SHORTCIRCUIT=0
@@ -27,6 +26,7 @@ USAGE(){
     echo "-s : shortcircuit  By Default, the search continues after "
     echo "                   the first match"
     echo "-j : jars only     By Default, the search cylces through $EXTENSIONS"
+    echo "-l : symlinks only Finds only symlink files"
 }
 
 class2path(){
@@ -77,13 +77,13 @@ for EXT in $EXTENSIONS
 do
     [ $VERBOSE -gt 0  ] && \
 	echo SEARCHING for $SUBSTRING in ALL $EXT Files in $SEARCHROOT
-    for ARCHIVE in `find  . -name \*.$EXT `
+    for ARCHIVE in `find  $SEARCHROOT  -name \*.$EXT  `
     do
 	[ $VERBOSE -gt 0  ] && echo -n .
  	if [ `file $ARCHIVE | grep -c "Zip archive data"` -gt 0 ]
 	then 
 	    [ `jar -tf $ARCHIVE | grep -c $SUBSTRING` -gt 0  ] && \
-		/bin/echo -e \\r $SEARCHROOT/$ARCHIVE  && \
+		/bin/echo -e \\r $ARCHIVE  && \
 		[ $SHORTCIRCUIT -gt 0 ] && exit 0
 	fi
     done

@@ -11,7 +11,7 @@ require 'uri'
 def localfetch(jarname)
   repo = "/home/#{ENV['USER']}/.m2/repository"
 
-  `find #{repo} -name #{jar}`.each do |found|
+  `find #{repo} -name #{jarname}\* `.each do |found|
     dir=File.dirname(found)
     pom="#{dir}/#{jarname}.pom"
     source="#{dir}/#{jarname}-sources.jar"
@@ -69,17 +69,13 @@ end
 
 jar=ARGV[0]
 unless jar != nil
-	puts "usage #{ARGV[0]} <JARFILE>"
+	puts "usage #{ARGV[0]} URL"
 	exit 1
 end
 
 
-unless /(.*).jar/ =~ jar 
-	puts "JARFILE must end with .jar"
-	exit 1
-end
-jarname=$1
+localfetch(jar)
 
-
-repo="repo2.maven.org"
-dirURI="/maven2/com/sun/xml/fastinfoset/FastInfoset/1.2.7/"
+#path=$1
+#repo="repo2.maven.org"
+#fetchSourceFromPom(repo, path)

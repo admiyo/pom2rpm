@@ -31,7 +31,7 @@ def write_spec(spec, pomname)
   spec.puts "BuildRequires: java-devel  "
   spec.puts "BuildRequires:  jpackage-utils"
   spec.puts "BuildArch: noarch"
-  classpath="src/"
+  classpath=""
   #TODO: pull this next section out into a function for both Requires and 
   # BuildRequires.  Translate servlet-api into servletapi5, 
   # remove webserver
@@ -45,10 +45,11 @@ def write_spec(spec, pomname)
         else
           spec.puts "BuildRequires: #{dep['artifactId']} >= #{dep['version']}"
         end
-        classpath += ":%{_javadir}/#{dep['artifactId']}.jar"
+        classpath += "#{dep['artifactId']} "
       }
     end
   end
+
   spec.puts "Requires:  java >= 1.5"
   spec.puts "Requires:  jpackage-utils"
   unless pom['dependencies'] == nil
@@ -82,14 +83,19 @@ def write_spec(spec, pomname)
   spec.puts "popd"
   spec.puts ""
   spec.puts "%build"
-  spec.puts "classpath=#{classpath}"
+  if classpath != ""
+    spec.puts "classpath=src:$(build-classpath #{classpath} )"
+  else
+    spec.puts "classpath=src"
+  end
+
   spec.puts "javac -d classes -cp $classpath  `find . -name \*.java` "
   spec.puts "javadoc -d javadoc -classpath $classpath  $(for JAVA in `find src/ -name \*.java` ; do  dirname $JAVA ; done | sort -u  | sed -e 's!src.!!'  -e 's!/!.!g'  )"
   spec.puts "find classes -name \*.class | sed -e  's!classes/!!g' -e 's!^! -C classes !'  | xargs jar cfm %{name}-%{version}.jar ./src/META-INF/MANIFEST.MF"
   spec.puts ""
   spec.puts ""
   spec.puts "%install"
-  spec.puts "#rm -rf $RPM_BUILD_ROOT"
+  spec.puts "rm -rf $RPM_BUILD_ROOT"
   spec.puts "mkdir -p $RPM_BUILD_ROOT"
   spec.puts "install -m 755 -d $RPM_BUILD_ROOT%{_javadir}"
   spec.puts "install -m 755 %{name}-%{version}.jar $RPM_BUILD_ROOT%{_javadir}"

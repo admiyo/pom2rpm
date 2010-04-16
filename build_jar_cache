@@ -1,0 +1,15 @@
+#!/bin/bash
+
+repos='/usr/share/java ~/.m2/repository /usr/lib64/eclipse'
+
+for repo in $repos
+do 
+   echo $repo
+   for jar in `find $repo -name \*.jar `
+   do  
+      for class in `jar -tf  $jar`
+      do
+            echo $class $jar
+      done      
+   done 
+done
