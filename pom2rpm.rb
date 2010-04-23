@@ -3,10 +3,12 @@
 require 'rubygems'
 require 'xmlsimple'
 require 'ftools'
-
+require 'jpp'
 
 
 def write_spec(spec, pomname)
+
+  jpp = JPP.new(false)
   pom = XmlSimple.xml_in("#{pomname}", { 'KeyAttr' => 'name' })
 
   spec.puts "Name:      #{pom['artifactId']}"
@@ -40,18 +42,29 @@ def write_spec(spec, pomname)
     unless pom['dependencies'][0]['dependency'] == nil
       pom['dependencies'][0]['dependency'].each { 
         |dep|  
-        if dep['version'] == nil
-          spec.puts "BuildRequires: #{dep['artifactId']}"        
+        rpm = jpp.rpm_search(dep['groupId'],  dep['artifactId'])
+        if ( rpm.nil?)
+          
+          if dep['version'] == nil
+            spec.puts "BuildRequires: #{dep['artifactId']}"        
+          else
+            spec.puts "BuildRequires: #{dep['artifactId']} >= #{dep['version']}"
+          end
+          classpath += "#{dep['artifactId']} "
         else
-          spec.puts "BuildRequires: #{dep['artifactId']} >= #{dep['version']}"
+          spec.puts "BuildRequires: #{rpm}"  
+          classpath += jpp.for_classpath(dep['groupId'],  dep['artifactId']) + " "
         end
-        classpath += "#{dep['artifactId']} "
       }
     end
   end
 
   spec.puts "Requires:  java >= 1.5"
   spec.puts "Requires:  jpackage-utils"
+  spec.puts "Requires(post):       jpackage-utils"
+  spec.puts "Requires(postun):     jpackage-utils"
+
+
   unless pom['dependencies'] == nil
     unless pom['dependencies'][0]['dependency'] == nil
       pom['dependencies'][0]['dependency'].each { 
@@ -99,11 +112,12 @@ def write_spec(spec, pomname)
   spec.puts "mkdir -p $RPM_BUILD_ROOT"
   spec.puts "install -m 755 -d $RPM_BUILD_ROOT%{_javadir}"
   spec.puts "install -m 755 %{name}-%{version}.jar $RPM_BUILD_ROOT%{_javadir}"
+  spec.puts "install -m 755 %{SOURCE0} $RPM_BUILD_ROOT%{_javadir}"
   spec.puts "ln -s %{_javadir}/%{name}-%{version}.jar $RPM_BUILD_ROOT%{_javadir}/%{name}.jar"
   spec.puts "install -m 755 -d $RPM_BUILD_ROOT%{_javadocdir}/%{name}"
   spec.puts "cp -rp javadoc/*  $RPM_BUILD_ROOT%{_javadocdir}/%{name}"
   spec.puts ""
-  spec.puts "%add_to_maven_depmap org.apache.maven %{name} %{version} JPP %{name}"
+  spec.puts "%add_to_maven_depmap #{pom['groupId']} %{name} %{version} JPP %{name}"
   spec.puts ""
   spec.puts "%clean"
   spec.puts "rm -rf $RPM_BUILD_ROOT"
@@ -118,8 +132,9 @@ def write_spec(spec, pomname)
   spec.puts ""
   spec.puts "%files"
   spec.puts "%defattr(-,root,root,-)"
-  spec.puts "/etc/maven/fragments/%{name}"
+  spec.puts "%{_mavendepmapfragdir}"
   spec.puts "%{_javadir}/%{name}-%{version}.jar"
+  spec.puts "%{_javadir}/%{name}-%{sources}.jar"
   spec.puts "%{_javadir}/%{name}.jar"
   spec.puts "%doc"
   spec.puts "%files javadoc"
