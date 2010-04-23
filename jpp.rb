@@ -116,7 +116,7 @@ def runJpp(argv)
     groupId=argv[0]
     artifactId=argv[1]     
     jpp = JPP.new(false) 
-    rpm = jpp.run_rpm_search groupId, artifactId
+    rpm = jpp.rpm_search groupId, artifactId
     puts rpm
   else
     jpp = JPP.new(true)    
