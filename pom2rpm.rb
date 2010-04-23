@@ -134,7 +134,7 @@ def write_spec(spec, pomname)
   spec.puts "%defattr(-,root,root,-)"
   spec.puts "%{_mavendepmapfragdir}"
   spec.puts "%{_javadir}/%{name}-%{version}.jar"
-  spec.puts "%{_javadir}/%{name}-%{sources}.jar"
+  spec.puts "%{_javadir}/%{name}-%{version}-sources.jar"
   spec.puts "%{_javadir}/%{name}.jar"
   spec.puts "%doc"
   spec.puts "%files javadoc"
