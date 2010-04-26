@@ -1,6 +1,12 @@
 #!/bin/bash
 
-repos='/usr/share/java ~/.m2/repository /usr/lib64/eclipse'
+
+if [ $# -eq 0 ]
+then
+    repos='/usr/share/java ~/.m2/repository /usr/lib64/eclipse'
+else	
+    repos=$@
+fi
 
 for repo in $repos
 do 
