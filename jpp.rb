@@ -94,12 +94,19 @@ class JPP
   def rpm_search(groupId, artifactId)
     key = "#{groupId}:#{artifactId}"
     jpp= callbacks.arch_map[key]    
+    if jpp.nil? 
+      return ""
+    end
+    
     return `rpmquery -f   --queryformat  "%-30{NAME}\n"  /usr/share/maven2/repository/#{jpp.groupId}/#{jpp.artifactId}.jar`
   end
 
   def for_classpath(groupId, artifactId)
     key = "#{groupId}:#{artifactId}"
     jpp= callbacks.arch_map[key]    
+    if jpp.nil?
+      return "#{artifactId}"
+    end
     return "#{jpp.artifactId}"
   end
 
