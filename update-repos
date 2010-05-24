@@ -1,14 +1,8 @@
 #!/bin/sh
 
 
-REPOS="candlepin buildr pulp"
-
-
-for repo in REPOS
-do
-    rm -rf /tmp/$repo
-    mkdir -p /tmp/$repo-repo
-done
+#REPOS="candlepin buildr pulp"
+REPOS="buildr pulp"
 
 cp /home/ayoung/rpmbuild/RPMS/ruby*  /tmp/buildr-repo
 cp /home/ayoung/rpmbuild/SRPMS/ruby*  /tmp/buildr-repo
@@ -17,30 +11,41 @@ mkdir -p /tmp/candlepin-repo
 
 CANDLEPIN_SPECS="activation bcpg-jdk16 bcprov-jdk16 commons-pool emma gettext-commons guice hibernate httpclient httpcore jackson jakarta jaxb-impl jaxrs-api jettison jmock jsr311-api jta log4j mockito persistence-api quartz resteasy scannotation servlet-api stax-api stax-ex wstx xalan-j2"
 
+PULP_SPECS="mongo python-greenlet python-gevent pulp grinder python-pymongo"
+BUILDR_SPECS="rubygem"
+
 #CANDLEPIN_UNUSED="aopalliance asm3 cglib freemarker "
 
-
-for spec in $CANDLEPIN_SPECS
-do
-    echo copying: /home/ayoung/rpmbuild/RPMS/$spec*rpm
-    rsync  /home/ayoung/rpmbuild/RPMS/$spec*rpm /tmp/candlepin-repo
-    rsync /home/ayoung/rpmbuild/SRPMS/$spec*rpm /tmp/candlepin-repo
-done
-
-PULP_SPECS="mongo python-greenlet python-gevent pulp grinder python-pymongo"
-for spec in $PULP_SPECS
-do
-    echo copying: /home/ayoung/rpmbuild/RPMS/$spec*rpm
-    rsync  /home/ayoung/rpmbuild/RPMS/$spec*rpm /tmp/pulp-repo
-    rsync /home/ayoung/rpmbuild/SRPMS/$spec*rpm /tmp/pulp-repo
-done
-
 for repo in $REPOS
-do        
-	pushd /tmp/$repo-repo
-	createrepo $PWD
-	rsync -av . admiyo@admiyo.fedorapeople.org:public_html/$repo-repo
-	popd
+do            
+    case $repo in
+	candlepin)
+	    REPOSPECS=$CANDLEPIN_SPECS
+	    ;;
+
+	buildr)
+	    REPOSPECS=$BUILDR_SPECS
+	    ;;
+	
+	pulp)
+	    REPOSPECS=$PULP_SPECS
+	    ;;
+    esac
+
+    rm    -rf /tmp/$repo-repo
+    mkdir -p  /tmp/$repo-repo
+
+    for spec in $REPOSPECS
+    do
+	echo copying: /home/ayoung/rpmbuild/RPMS/$spec*rpm
+	cp -R /home/ayoung/rpmbuild/RPMS/$spec*rpm /tmp/$repo-repo
+	cp -R /home/ayoung/rpmbuild/SRPMS/$spec*rpm /tmp/$repo-repo
+    done
+
+    pushd /tmp/$repo-repo
+    createrepo $PWD
+    rsync --delete -av . admiyo@admiyo.fedorapeople.org:public_html/$repo-repo
+    popd
 done
 
 
