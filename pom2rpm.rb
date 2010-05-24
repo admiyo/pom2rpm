@@ -104,7 +104,8 @@ def write_spec(spec, pomname)
 
   spec.puts "javac -d classes -cp $classpath  `find . -name \*.java` "
   spec.puts "javadoc -d javadoc -classpath $classpath  $(for JAVA in `find src/ -name \*.java` ; do  dirname $JAVA ; done | sort -u  | sed -e 's!src.!!'  -e 's!/!.!g'  )"
-  spec.puts "find classes -name \*.class | sed -e  's!classes/!!g' -e 's!^! -C classes !'  | xargs jar cfm %{name}-%{version}.jar ./src/META-INF/MANIFEST.MF"
+  spec.puts "find classes -name \*.class | sed -e  's!classes/!!g' -e 's!^! -C classes !'  | xargs jar cf %{name}-%{version}.jar"
+  spec.puts "find src -name *.properties\* | sed -e  's!src/!!g'   -e 's!^! -C src !'   | xargs jar uf %{name}-%{version}.jar"
   spec.puts ""
   spec.puts ""
   spec.puts "%install"
